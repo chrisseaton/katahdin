@@ -1,0 +1,8 @@
+import "test.kat";
+
+test
+{
+    assert "abc"[0] == "a";
+    assert "abc"[1] == "b";
+    assert "abc"[2] == "c";
+}

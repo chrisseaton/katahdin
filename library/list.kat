@@ -1,0 +1,36 @@
+List = System.Collections.ArrayList;
+
+class ListExpression : Expression
+{
+    pattern
+    {
+        "["
+        {
+            option dropPrecedence;
+            items:(Expression ("," Expression)*)?
+        }
+        "]"
+    }
+    
+    method Get()
+    {
+        list = new List();
+        
+        for (n = 0; n < this.items.Count; n++)
+            list.Add(this.items.get_Item(n).Get...());
+            //list.Add(this.items[n].Get...());
+        
+        return list;
+    }
+    
+    method Set(value)
+    {
+        assert value.Count == this.items.Count;
+        
+        for (n = 0; n < this.items.Count; n++)
+            this.items.get_Item(n).Set...(value[n]);
+            //this.items[n].Set...(value[n]);
+    }
+}
+
+precedence ListExpression = ParenExpression;

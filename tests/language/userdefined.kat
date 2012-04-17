@@ -1,0 +1,28 @@
+import "test.kat";
+
+x = false;
+
+class UserDefined
+{
+    method Parse(lexer)
+    {
+        globals.x = true;
+        return true;
+    }
+}
+
+class UserDefinedPattern : Statement
+{
+    pattern
+    {
+        "__USERDEFINED__" UserDefined
+    }
+    
+    method Run()
+    {
+    }
+}
+
+__USERDEFINED__
+
+assert x;

@@ -1,0 +1,14 @@
+class AssertStatement : Statement
+{
+    pattern
+    {
+        "assert" conditionSource:token{condition:Expression} ";"
+    }
+    
+    method Run()
+    {
+        if (!this.condition.Get...() as System.Boolean)
+            throw this.condition.Source.ToString() + " failed: "
+                + this.conditionSource.Trim();
+    }
+}

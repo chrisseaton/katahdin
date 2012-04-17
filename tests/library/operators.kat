@@ -1,0 +1,63 @@
+import "test.kat";
+
+// Positive and negative
+
+test
+{
+    test
+    {
+        assert + 0 == 0;
+        assert - 0 == 0;
+    }
+
+    test
+    {
+        assert + 14 == 14;
+        assert - + 14 == - 14;
+        assert + - + 14 == - 14;
+        assert - + - + 14 == 14;
+    }
+
+    test
+    {
+        assert - 2 + 3 == (- 2) + 3;
+        assert - (2 + 3) == - 5;
+    }
+}
+
+// Power
+
+test
+{
+    test
+    {
+        assert 2 ^ 3 == 8;
+    }
+    
+    test
+    {
+        assert 2 ^ 3 ^ 2 == 512;
+        
+        assert 2 ^ (3 ^ 2) == 512;
+        assert (2 ^ 3) ^ 2 == 64;
+    }
+}
+
+// Increment and decrement
+
+test
+{
+    test
+    {
+        a = 14;
+        assert a++ == 15;
+        assert a == 15;
+    }
+    
+    test
+    {
+        a = 14;
+        assert a-- == 13;
+        assert a == 13;
+    }
+}

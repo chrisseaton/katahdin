@@ -1,0 +1,396 @@
+import "indentation.kat";
+
+function range(max)
+{
+    items = [];
+    
+    for (n = 0; n < max; n++)
+        items.Add(n);
+    
+    return items;
+}
+
+module Python
+{
+    class Expression;
+    
+    class NumberExpression : Expression
+    {
+        pattern
+        {
+            number:Number
+        }
+        
+        method Get()
+        {
+            return this.number.Value;
+        }
+    }
+    
+    class NameExpression : Expression
+    {
+        pattern
+        {
+            name:Name
+        }
+        
+        method Get()
+        {
+            return scope.Parent.names[this.name.name];
+        }
+        
+        method Set(value)
+        {
+            scope.Parent.names[this.name.name] = value;
+        }
+    }
+    
+    class StringExpression : Expression
+    {
+        pattern
+        {
+            string:String
+        }
+        
+        method Get()
+        {
+            return this.string.Text;
+        }
+    }
+    
+    class ParenExpression : Expression
+    {
+        pattern
+        {
+            "("
+            {
+                option dropPrecedence;
+                body:Expression
+            }
+            ")"
+        }
+        
+        method Get()
+        {
+            return this.body.Get...();
+        }
+    }
+    
+    class TuppleExpression : Expression
+    {
+        pattern
+        {
+            "(" items:(Expression ("," Expression)+) ")"
+        }
+        
+        method Get()
+        {
+            tupple = [];
+            
+            for (item in this.items)
+                tupple.Add(item.Get...());
+            
+            return tupple;
+        }
+        
+        method Set(value)
+        {
+            for (n = 0; n < this.items.Count; n++)
+                this.items[n].Set...(value[n]);
+        }
+    }
+    
+    class CallExpression : Expression
+    {
+        pattern
+        {
+            option leftRecursive;
+            
+            callable:Expression
+                "(" parameters:(Expression ("," Expression)*)? ")"
+        }
+        
+        method Get()
+        {
+            parameterValues = [];
+            
+            for (parameter in this.parameters)
+                parameterValues.Add(parameter.Get...());
+            
+            parameterValues = parameterValues.ToArray();
+            refParams = null;
+            
+            _returnValue = Katahdin.CodeTree.CallNode.Call(
+                this.callable.Get...(),
+                parameterValues,
+                true,
+                refParams);
+            
+            if (refParams != null)
+            {
+                for (n = 0; n < this.parameters.Count; n++)
+                {
+                    if (refParams[n])
+                        this.parameters[n].Set...(parameterValues[n]);
+                }
+            }
+            
+            return _returnValue;
+        }
+    }
+    
+    class MultiplicativeExpression : Expression;
+    
+    class MulExpression : MultiplicativeExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression "*" b:Expression
+        }
+        
+        method Get()
+        {
+            return this.a.Get...() * this.b.Get...();
+        }
+    }
+    
+    class DivExpression : MultiplicativeExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression "/" b:Expression
+        }
+        
+        method Get()
+        {
+            return this.a.Get...() / this.b.Get...();
+        }
+    }
+    
+    precedence MultiplicativeExpression < CallExpression;
+    
+    class AdditiveExpression : Expression;
+    
+    class AddExpression : AdditiveExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression "+" b:Expression
+        }
+        
+        method Get()
+        {
+            return this.a.Get...() + this.b.Get...();
+        }
+    }
+    
+    class SubExpression : AdditiveExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression "-" b:Expression
+        }
+        
+        method Get()
+        {
+            return this.a.Get...() - this.b.Get...();
+        }
+    }
+
+    precedence AdditiveExpression < MultiplicativeExpression;
+    
+    class EqualityExpression : Expression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression "==" b:Expression
+        }
+        
+        method Get()
+        {
+            return this.a.Get...() == this.b.Get...();
+        }
+    }
+
+    precedence EqualityExpression < AdditiveExpression;
+    
+    class AssignExpression : Expression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression "=" b:Expression
+        }
+        
+        method Get()
+        {
+            value = this.b.Get...();
+            this.a.Set...(value);
+            
+            return value;
+        }
+    }
+    
+    precedence AssignExpression < EqualityExpression;
+    
+    class Statement;
+    
+    class ExpressionStatement : Statement
+    {
+        pattern
+        {
+            Indentation.Indentation expression:Expression
+                Indentation.EndOfLine
+        }
+        
+        method Run()
+        {
+            this.expression.Get...();
+        }
+    }
+    
+    class PrintStatement : Statement
+    {
+        pattern
+        {
+            Indentation.Indentation "print" expression:Expression
+                Indentation.EndOfLine
+        }
+        
+        method Run()
+        {
+            print this.expression.Get...();
+        }
+    }
+    
+    class AssertStatement : Statement
+    {
+        pattern
+        {
+            Indentation.Indentation "assert"
+                conditionSource:token{condition:Expression}
+                Indentation.EndOfLine
+        }
+        
+        method Run()
+        {
+            if (!this.condition.Get...() as System.Boolean)
+                throw this.condition.Source.ToString() + " failed: "
+                    + this.conditionSource.Trim();
+        }
+    }
+    
+    class ForStatement : Statement
+    {
+        pattern
+        {
+            Indentation.Indentation "for" var:Expression
+                "in" items:Expression ":" Indentation.EndOfLine
+            Indentation.Indent
+                body:Statement+
+            Indentation.Dedent
+        }
+        
+        method Run()
+        {
+            for (item in this.items.Get...())
+            {
+                this.var.Set...(item);
+                
+                for (statement in this.body)
+                    statement.Run...();
+            }
+        }
+    }
+    
+    class ReturnStatement : Statement
+    {
+        pattern
+        {
+            Indentation.Indentation "return" expression:Expression
+                Indentation.EndOfLine
+        }
+        
+        method Run()
+        {
+            return this.expression.Get...();
+        }
+    }
+    
+    class FunctionStatement : Statement
+    {
+        pattern
+        {
+            Indentation.Indentation "def" name:Name
+                "(" parameters:(Name ("," Name)*)? ")" ":"
+                Indentation.EndOfLine
+            Indentation.Indent
+                body:Statement+
+            Indentation.Dedent
+        }
+        
+        method Call(parameters)
+        {
+            for (n = 0; n < parameters.Length; n++)
+                scope.names[this.parameters[n].name] = parameters[n];
+            
+            // TODO scope problems
+            
+            for (statement in this.body)
+                _returnValue = statement.Run();
+            
+            return _returnValue;
+        }
+        
+        method Run()
+        {
+            globals.names[this.name.name] = this;
+        }
+    }
+    
+    class TopLevelStatement
+    {
+        pattern
+        {
+            statement:Statement
+        }
+        
+        method Parsed()
+        {
+            this.statement.Run...();
+        }
+    }
+    
+    class Program
+    {
+        pattern
+        {
+            option whitespace = Indentation.Whitespace;
+            
+            Indentation.EndOfLine?
+            statements:TopLevelStatement*
+        }
+        
+        method Parsed()
+        {
+            Indentation.Reset();
+        }
+    }
+}
+
+class PythonStatement : Statement
+{
+    pattern
+    {
+        "python" "{" Python.Program "}"
+    }
+
+    method Run()
+    {
+    }
+}

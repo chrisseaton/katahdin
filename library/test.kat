@@ -1,0 +1,34 @@
+class TestStatement : Statement
+{
+    pattern
+    {
+        "test" ("throws" throws:Expression)? body:CompoundStatement
+    }
+    
+    method Run()
+    {
+        // FIXME - should be this.Source, but that returns null
+        
+        try
+        {
+            this.body.Run...();
+            
+            print this.body.Source, "passed";
+        }
+        catch (exception)
+        {
+            if (this.throws == null)
+            {
+                print this.body.Source, "failed:", exception;
+            }
+            else
+            {
+                if (exception is this.throws.Get...())
+                    print this.body.Source, "passed";
+                else
+                    print this.body.Source, "failed: wrong type of exception:",
+						expection;
+            }
+        }
+    }
+}

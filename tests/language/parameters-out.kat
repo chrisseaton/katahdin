@@ -1,0 +1,40 @@
+import "test.kat";
+
+import "Katahdin.Tests.dll";
+
+test
+{
+    refParams = Katahdin.ClrObjectMethodBinding
+        .GetRefParams(Katahdin.Tests.ParametersOut.Test.Method);
+
+    assert refParams != null;
+    assert refParams.Length == 2;
+    assert refParams[0] == true;
+    assert refParams[1] == false;
+}
+
+test
+{
+    x = 0;
+    Katahdin.Tests.ParametersOut.Test(x, 2);
+    assert x == 14;
+}
+
+test
+{
+    params = [0, 2].ToArray();
+    refParams = null;
+    
+    Katahdin.CodeTree.CallNode.Call(
+        Katahdin.Tests.ParametersOut.Test.Method,
+        params,
+        true,
+        refParams);
+    
+    assert params[0] == 14;
+    assert params[1] == 2;
+    
+    assert refParams != null;
+    assert refParams[0] == true;
+    assert refParams[1] == false;
+}

@@ -1,0 +1,81 @@
+class ForLoop : Statement
+{
+    pattern
+    {
+        "for" "(" init:Expression ";" cond:Expression ";" inc:Expression ")"
+            body:Statement
+    }
+    
+    method Run()
+    {
+        this.init.Get...();
+        
+        while (this.cond.Get...())
+        {
+            this.body.Run...();
+            this.inc.Get...();
+        }
+    }
+}
+
+class ForInLoop : Statement
+{
+    pattern
+    {
+        "for" "(" var:Expression "in" collection:Expression ")"
+            body:Statement
+    }
+    
+    method Run()
+    {
+        collection = this.collection.Get...();
+        
+        /*
+            Remember that lots of things are IEnumerable - check more specific
+            types like IDictionary first.
+        */
+        
+        if (collection is System.String)
+        {
+            string = collection;
+            
+            for (n = 0; n < string.Length; n++)
+            {
+                this.var.Set...(string[n]);
+                this.body.Run...();
+            }
+        }
+        else if (collection is System.Collections.IDictionary)
+        {
+            enumerator = collection.GetEnumerator();
+
+            while (enumerator.MoveNext())
+            {
+                entry = enumerator.Current;
+                
+                // Can't use List - not defined yet
+                
+                tupple = new System.Collections.ArrayList();
+                tupple.Add(entry.Key);
+                tupple.Add(entry.Value);
+                
+                this.var.Set...(tupple);
+                this.body.Run...();
+            }
+        }
+        else if (collection is System.Collections.IEnumerable)
+        {
+            enumerator = collection.GetEnumerator();
+            
+            while (enumerator.MoveNext())
+            {
+                this.var.Set...(enumerator.Current);
+                this.body.Run...();
+            }
+        }
+        else
+        {
+            throw "not enumerable";
+        }
+    }
+}

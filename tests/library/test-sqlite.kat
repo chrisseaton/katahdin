@@ -1,0 +1,33 @@
+import "sqlite.kat";
+import "test.kat";
+
+test
+{
+    database = new Mono.Data.SqliteClient.SqliteConnection(
+        "version=3,URI=file::memory:");
+    
+    database.Open();
+}
+
+test
+{
+    database? create table test(a);
+}
+
+test
+{
+    for (n = 0; n < 10; n = n + 1)
+        database? insert into test values({n});
+}
+
+test
+{
+    results = database? select a from test;
+    assert results.Count == 10;
+}
+
+test
+{
+    results = database? select a from test where a >= 5;
+    assert results.Count == 5;
+}

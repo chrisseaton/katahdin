@@ -1,0 +1,84 @@
+class PositiveExpression : UnaryExpression
+{
+    pattern
+    {
+        option rightRecursive;
+    
+        "+" expression:Expression
+    }
+
+    method Get()
+    {
+        return this.expression.Get...();
+    }
+}
+
+class NegativeExpression : UnaryExpression
+{
+    pattern
+    {
+        option rightRecursive;
+        
+        "-" expression:Expression
+    }
+    
+    method Get()
+    {
+        return 0 - this.expression.Get...();
+    }
+}
+
+class PowExpression : MultiplicativeExpression
+{
+    pattern
+    {
+        option rightRecursive;
+        
+        a:Expression "^" b:Expression
+    }
+    
+    method Get()
+    {
+        // TODO - replace casting with automatic type conversion in type member
+        
+        return System.Math.Pow(this.a.Get...() as System.Double, this.b.Get...() as System.Double);
+    }
+}
+
+class IncrementExpression : Expression
+{
+    pattern
+    {
+        option recursive = false;
+        
+        expression:Expression "++"
+    }
+    
+    method Get()
+    {
+        value = this.expression.Get...() + 1;
+        this.expression.Set...(value);
+        return value;
+    }
+}
+
+precedence IncrementExpression < CallExpression;
+
+class DecrementExpression : Expression
+{
+    pattern
+    {
+        option recursive = false;
+
+        expression:Expression "--"
+    }
+    
+    method Get()
+    {
+        value = this.expression.Get...() - 1;
+        this.expression.Set...(value);
+        return value;
+    }
+}
+
+precedence DecrementExpression = IncrementExpression;

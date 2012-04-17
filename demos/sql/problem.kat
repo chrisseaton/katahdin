@@ -1,0 +1,44 @@
+import "Mono.Data.SqliteClient.dll";
+
+database = new Mono.Data.SqliteClient.SqliteConnection(
+    "version=3,URI=file::memory:");
+
+database.Open();
+
+command = database.CreateCommand();
+
+command.CommandText = "create table films(title, year, director)";
+reader = command.ExecuteReader();
+
+command.CommandText
+    = "insert into films values(\"Raiders of the Lost Ark\", "
+    + "1981, "
+    + "\"Steven Spielberg\")";
+reader = command.ExecuteReader();
+
+command.CommandText
+    = "insert into films values(\"Indiana Jones and the Temple of Doom\", "
+    + "1984, "
+    + "\"Steven Spielberg\")";
+reader = command.ExecuteReader();
+
+command.CommandText
+    = "insert into films values(\"Indiana Jones and the Last Crusade\", "
+    + "1989, "
+    + "\"Steven Spielberg\")";
+reader = command.ExecuteReader();
+
+command.CommandText
+    = "select year, title, director from films where year >= " + args[0];
+reader = command.ExecuteReader();
+
+print "Films made since " + args[0];
+
+while (reader.Read())
+{    
+    title = reader.GetString(0);
+    year = reader.GetString(1);
+    director = reader.GetString(2);
+    
+    print " " + title + ", " + year + " (" + director + ")";
+}

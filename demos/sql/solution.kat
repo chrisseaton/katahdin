@@ -1,0 +1,26 @@
+import "sqlite.kat";
+
+database = new Mono.Data.SqliteClient.SqliteConnection(
+    "version=3,URI=file::memory:");
+
+database.Open();
+
+database? create table films(title text, year integer, director text);
+
+database? insert into films values("Raiders of the Lost Ark",
+    1981, "Steven Spielberg");
+
+database? insert into films values("Indiana Jones and the Temple of Doom",
+    1984, "Steven Spielberg");
+
+database? insert into films values("Indiana Jones and the Last Crusade",
+    1989, "Steven Spielberg");
+
+films = database? select year, title, director
+    from films
+    where year >= {args[0]};
+
+print "Films made since " + args[0];
+
+for ([title, year, director] in films)
+    print " " + title + ", " + year + " (" + director + ")";

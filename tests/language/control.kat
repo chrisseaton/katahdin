@@ -1,0 +1,74 @@
+import "test.kat";
+
+test
+{
+    if (true)
+        assert true;
+}
+
+test
+{
+    if (false)
+        assert false;
+}
+
+test
+{
+    if (true)
+        assert true;
+    else
+        assert false;
+}
+
+test
+{
+    if (false)
+        assert false;
+    else
+        assert true;
+}
+
+test
+{
+    if (true)
+    {
+        if (true)
+            assert true;
+    }
+}
+
+test
+{
+    if (true)
+        if (false)
+            assert false;
+        else
+            assert true;
+}
+
+test
+{
+    if (true)
+        if (false)
+            assert false;
+        else
+            assert true;
+    else
+        assert false;
+}
+
+test
+{
+    while (false)
+        assert false;
+}
+
+test
+{
+    n = 1;
+
+    while (n < 1000)
+        n = n * 2;
+
+    assert n == 1024;
+}

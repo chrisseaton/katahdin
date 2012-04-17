@@ -1,0 +1,248 @@
+import "Mono.Data.SqliteClient.dll";
+
+module Sqlite
+{
+    class Type
+    {
+        pattern
+        {
+            option buildTextNodes;
+            
+            type:("integer" | "text")
+        }
+    }
+    
+    class Expression;
+    
+    class NameExpression : Expression
+    {
+        pattern
+        {
+            name:Name
+        }
+        
+        method GetSql()
+        {
+            return this.name.name;
+        }
+    }
+    
+    class NumberExpression : Expression
+    {
+        pattern
+        {
+            number:Number
+        }
+        
+        method GetSql()
+        {
+            return this.number.Value;
+        }
+    }
+    
+    class StringExpression : Expression
+    {
+        pattern
+        {
+            string:String
+        }
+
+        method GetSql()
+        {
+            return Katahdin.TextEscape.Quote(this.string.Text);
+        }
+    }
+    
+    class KatahdinExpression : Expression
+    {
+        pattern
+        {
+            "{"
+            {
+                option dropPrecedence;
+                a:globals.Expression
+            }
+            "}"
+        }
+        
+        method GetSql()
+        {
+            value = this.a.Get...();
+            
+            if (value is System.String)
+                value = Katahdin.TextEscape.Quote(value);
+            else if (!(value is System.Int32))
+                throw "unexpected type";
+            
+            return value as System.String;
+        }
+    }
+    
+    class ComparisonExpression : Expression;
+    
+    class GreaterOrEqualExpression : ComparisonExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            
+            a:Expression ">=" b:Expression
+        }
+        
+        method GetSql()
+        {
+            return "(" + this.a.GetSql...() + " >= " + this.b.GetSql...() + ")";
+        }
+    }
+    
+    class Statement;
+    
+    class ColumnDefinition
+    {
+        pattern
+        {
+            name:Name (type:Type)?
+        }
+        
+        method GetSql()
+        {
+            command = this.name.name;
+            
+            if (this.type != null)
+                command = command + " " + this.type.type;
+            
+            return command;
+        }
+    }
+    
+    class CreateTableStatement : Statement
+    {
+        pattern
+        {
+            "create" "table"
+                name:Name
+                "("
+                    columns:(ColumnDefinition ("," ColumnDefinition)*)
+                ")"
+        }
+        
+        method GetSql()
+        {
+            command = "create table " + this.name.name + "(";
+            
+            for (n = 0; n < this.columns.Count; n++)
+            {
+                if (n > 0)
+                    command = command + ", ";
+            
+                command = command + this.columns[n].GetSql...();
+            }
+            
+            command = command + ")";
+            
+            return command;
+        }
+    }
+    
+    class InsertStatement : Statement
+    {
+        pattern
+        {
+            "insert"
+                "into" table:Name
+                "values" "("
+                    values:(Expression ("," Expression)*)
+                ")"
+        }
+        
+        method GetSql()
+        {
+            command = "insert into " + this.table.name + " values(";
+            
+            for (n = 0; n < this.values.Count; n++)
+            {
+                if (n > 0)
+                    command = command + ", ";
+            
+                command = command + this.values[n].GetSql...();
+            }
+            
+            command = command + ")";
+            
+            return command;
+        }
+    }
+    
+    class SelectStatement : Statement
+    {
+        pattern
+        {
+            "select"
+                results:(Name ("," Name)*)
+                "from" table:Name
+                ("where" where:Expression)?
+        }
+        
+        method GetSql()
+        {
+            command = "select ";
+            
+            for (n = 0; n < this.results.Count; n++)
+            {
+                if (n > 0)
+                    command = command + ", ";
+            
+                command = command + this.results[n].name;
+            }
+            
+            command = command + " from " + this.table.name;
+            
+            if (this.where != null)
+                command = command + " where " + this.where.GetSql...();
+            
+            return command + ";";
+        }
+    }
+}
+
+class SqliteExpression : Expression
+{
+    pattern
+    {
+        option recursive = false;
+        database:Expression "?" statement:Sqlite.Statement
+    }
+    
+    method Get()
+    {
+        // Evaluate the operands
+        
+        database = this.database.Get...();
+        sql = this.statement.GetSql...();
+        
+        // Execute the command
+        
+        command = database.CreateCommand();
+        command.CommandText = sql;
+        
+        reader = command.ExecuteReader();
+        
+        // Read each row into a list
+        
+        rows = [];
+        
+        while (reader.Read())
+        {
+            row = [];
+            
+            for (n = 0; n < reader.FieldCount; n++)
+                row.Add(reader.GetValue(n));
+            
+            rows.Add(row);
+        }
+        
+        return rows;
+    }
+}
+
+precedence SqliteExpression > CallExpression;

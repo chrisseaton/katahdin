@@ -1,0 +1,550 @@
+function REAL(x)
+{
+    return x as System.Double;
+}
+
+module Fortran
+{
+    class Whitespace
+    {
+        pattern
+        {
+            (" " | "\t")+
+        }
+    }
+    
+    class EndOfLine
+    {
+        pattern
+        {
+            ("\r" "\n"? | "\n")*
+        }
+    }
+    
+    class Type
+    {
+        pattern
+        {
+            option buildTextNodes = true;
+            type:("INTEGER" | "REAL")
+        }
+        
+        method GetType()
+        {
+            if (this.type == "INTEGER")
+                return System.Int32;
+            else if (this.type == "REAL")
+                return System.Double;
+        }
+    }
+    
+    class Expression;
+    
+    class NumberExpression : Expression
+    {
+        pattern
+        {
+            number:Number
+        }
+        
+        method Get(types)
+        {
+            return this.number.Value;
+        }
+    }
+    
+    class NameExpression : Expression
+    {
+        pattern
+        {
+            name:Name
+        }
+        
+        method Get(types)
+        {
+            name = this.name.name;
+            
+            // FIXME - use runtime methods
+            
+            if (scope.Parent.names.ContainsKey(name))
+                return scope.Parent.names[this.name.name];
+            
+            return globals.names[name];
+        }
+        
+        method Set(types, value)
+        {
+            name = this.name.name;
+            
+            // FIXME - use runtime methods
+            
+            if (types.ContainsKey(name))
+                scope.Parent.names[name] = value as types[name];
+            else
+                globals.names[name] = value;
+        }
+    }
+    
+    class ParenExpression : Expression
+    {
+        pattern
+        {
+            "("
+            {
+                option dropPrecedence;
+                body:Expression
+            }
+            ")"
+        }
+        
+        method Get(types)
+        {
+            return this.body.Get...(types);
+        }
+    }
+    
+    class CallExpression : Expression
+    {
+        pattern
+        {
+            option leftRecursive;
+            
+            callable:Expression
+            "("
+            {
+                option dropPrecedence;
+                parameters:(Expression ("," Expression)*)?
+            }
+            ")"
+        }
+        
+        method Get(types)
+        {
+            parameterValues = [];
+            
+            for (parameter in this.parameters)
+                parameterValues.Add(parameter.Get...(types));
+            
+            parameterValues = parameterValues.ToArray();
+            refParams = null;
+            
+            _returnValue = Katahdin.CodeTree.CallNode.Call(
+                this.callable.Get...(types),
+                parameterValues,
+                true,
+                refParams);
+            
+            if (refParams != null)
+            {
+                for (n = 0; n < this.parameters.Count; n++)
+                {
+                    if (refParams[n])
+                        this.parameters[n].Set...(types, parameterValues[n]);
+                }
+            }
+            
+            return _returnValue;
+        }
+    }
+    
+    class LogicalExpression : Expression;
+    
+    class LtExpression : LogicalExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression ".LT." b:Expression
+        }
+        
+        method Get(types)
+        {
+            return this.a.Get...(types) < this.b.Get...(types);
+        }
+    }
+    
+    class EqExpression : LogicalExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression ".EQ." b:Expression
+        }
+        
+        method Get(types)
+        {
+            return this.a.Get...(types) == this.b.Get...(types);
+        }
+    }
+    
+    class NeExpression : LogicalExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression ".NE." b:Expression
+        }
+        
+        method Get(types)
+        {
+            return this.a.Get...(types) != this.b.Get...(types);
+        }
+    }
+    
+    class GtExpression : LogicalExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression ".GT." b:Expression
+        }
+        
+        method Get(types)
+        {
+            return this.a.Get...(types) > this.b.Get...(types);
+        }
+    }
+    
+    precedence LogicalExpression < CallExpression;
+    
+    class MultiplicativeExpression : Expression;
+    
+    class MultiplyExpression : MultiplicativeExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression "*" b:Expression
+        }
+        
+        method Get(types)
+        {
+            return this.a.Get...(types) * this.b.Get...(types);
+        }
+    }
+
+    class DivideExpression : MultiplicativeExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression "/" b:Expression
+        }
+
+        method Get(types)
+        {
+            return this.a.Get...(types) / this.b.Get...(types);
+        }
+    }
+
+    precedence MultiplicativeExpression < LogicalExpression;
+
+    class AdditiveExpression : Expression;
+
+    class AddExpression : AdditiveExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression "+" b:Expression
+        }
+
+        method Get(types)
+        {
+            return this.a.Get...(types) + this.b.Get...(types);
+        }
+    }
+
+    class SubtractExpression : AdditiveExpression
+    {
+        pattern
+        {
+            option leftRecursive;
+            a:Expression "-" b:Expression
+        }
+
+        method Get(types)
+        {
+            return this.a.Get...(types) - this.b.Get...(types);
+        }
+    }
+    
+    precedence AdditiveExpression < MultiplicativeExpression;
+    
+    class Statement;
+    
+    class Comment
+    {
+        pattern
+        {
+            "*" (!("\r" "\n"? | "\n") .)* EndOfLine
+        }
+    }
+    
+    class Gutter
+    {
+        pattern
+        {
+            Comment* (label:Number)?
+        }
+    }
+    
+    class Line
+    {
+        pattern
+        {
+            gutter:Gutter statement:Statement EndOfLine
+        }
+    }
+    
+    class TypeStatement : Statement
+    {
+        pattern
+        {
+            type:Type name:Name
+        }
+        
+        method Run(types)
+        {
+        }
+    }
+    
+    class AssignStatement : Statement
+    {
+        pattern
+        {
+            name:NameExpression "=" expression:Expression
+        }
+        
+        method Run(types)
+        {
+            this.name.Set...(types, this.expression.Get...(types));
+        }
+    }
+    
+    class CallStatement : Statement
+    {
+        pattern
+        {
+            "CALL" call:CallExpression
+        }
+
+        method Run(types)
+        {
+            this.call.Get...(types);
+        }
+    }
+    
+    class PrintStatement : Statement
+    {
+        pattern
+        {
+            "PRINT" "*" "," value:NameExpression
+        }
+
+        method Run(types)
+        {
+            print this.value.Get...(types);
+        }
+    }
+    
+    class IfStatement : Statement
+    {
+        pattern
+        {
+            "IF" "(" condition:Expression ")" then:Statement
+        }
+        
+        method Run(types)
+        {
+            if (this.condition.Get...(types) as System.Boolean)
+                return this.then.Run...(types);
+        }
+    }
+    
+    class GotoStatement : Statement
+    {
+        field labelNumber;
+        
+        pattern
+        {
+            "GOTO" label:Number
+        }
+        
+        method Run(types)
+        {
+            return this.label.number as System.Int32;
+        }
+    }
+    
+    class AssertStatement : Statement
+    {
+        pattern
+        {
+            "ASSERT" conditionSource:token{condition:Expression}
+        }
+        
+        method Run(types)
+        {
+            if (!this.condition.Get...(types) as System.Boolean)
+                throw this.condition.Source.ToString() + " failed: "
+                    + this.conditionSource.Trim();
+        }
+    }
+    
+    class ReturnStatement : Statement
+    {
+        pattern
+        {
+            "RETURN"
+        }
+        
+        method Run(types)
+        {
+        }
+    }
+    
+    class Subprogram
+    {
+        field labels;
+        field types;
+        
+        method ResolveLabelsTypes()
+        {
+            this.labels = {};
+            this.types = {};
+            
+            for (n = 0; n < this.lines.Count; n++)
+            {
+                line = this.lines[n];
+                
+                label = line.gutter.label;
+                
+                if (label != null)
+                    this.labels[label.number as System.Int32] = n;
+                
+                // FIXME - this method is called from root module, so TypeStatement is not in scope
+                
+                if (line.statement is globals.Fortran.TypeStatement)
+                {
+                    name = line.statement.name.name;
+                    type = line.statement.type.GetType();
+                    this.types[name] = type;
+                }
+            }
+        }
+        
+        method Run()
+        {
+            n = 0;
+            
+            while (n < this.lines.Count)
+            {
+                goto = this.lines[n].statement.Run...(this.types);
+                
+                if (goto != null)
+                    n = this.labels[goto];
+                else
+                    n++;
+            }
+        }
+    }
+    
+    class Subroutine : Subprogram
+    {
+        field refParams;
+        
+        pattern
+        {
+            Gutter "SUBROUTINE" name:Name
+                "(" parameters:(Name ("," Name)*)? ")" EndOfLine
+            lines:Line*
+            Gutter "END" EndOfLine
+        }
+
+        method Parsed()
+        {
+            this.ResolveLabelsTypes();
+            
+            // todo tidy up
+            
+            this.refParams = [];
+            
+            for (n = 0; n < this.parameters.Count; n++)
+                this.refParams.Add(true);
+            
+            globals.names[this.name.name] = this;
+        }
+        
+        method GetRefParams()
+        {
+            return this.refParams;
+        }
+        
+        method Call(parameterValues)
+        {
+            for (n = 0; n < parameterValues.Count; n++)
+            {
+                name = this.parameters[n].name;
+                type = this.types[name];
+                
+                scope.names[name] = parameterValues[n] as type;
+            }
+            
+            this.Run();
+            
+            for (n = 0; n < parameterValues.Count; n++)
+                parameterValues[n] = scope.names[this.parameters[n].name];
+        }
+    }
+    
+    class MainProgram : Subprogram
+    {
+        pattern
+        {
+            Gutter "PROGRAM" Name EndOfLine
+            lines:Line*
+            Gutter "END" EndOfLine
+        }
+        
+        method Parsed()
+        {
+            this.ResolveLabelsTypes();
+            globals.__MAIN__ = this;
+        }
+        
+        method Call(parameterValues)
+        {
+            this.Run();
+        }
+    }
+    
+    class Program
+    {
+        pattern
+        {
+            option whitespace = Whitespace;
+            
+            subprograms:Subprogram*
+            Comment*
+        }
+        
+        method Parsed()
+        {
+            if (globals.names.ContainsKey("__MAIN__"))
+                __MAIN__();
+        }
+    }
+}
+
+class FortranStatement : Statement
+{
+    pattern
+    {
+        "fortran" "{" Fortran.Program "}"
+    }
+    
+    method Run()
+    {
+    }
+}

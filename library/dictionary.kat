@@ -1,0 +1,37 @@
+Dictionary = System.Collections.Hashtable;
+
+class DictionaryEntry
+{
+    pattern
+    {
+        key:Expression ":" value:Expression
+    }
+}
+
+class DictionaryExpression : Expression
+{
+    pattern
+    {
+        "{"
+        {
+            option dropPrecedence;
+            entries:(DictionaryEntry ("," DictionaryEntry)*)?
+        }
+        "}"
+    }
+    
+    method Get()
+    {
+        dictionary = new Dictionary();
+        
+        for (n = 0; n < this.entries.Count; n++)
+        {
+            entry = this.entries[n];
+            dictionary[entry.key.Get...()] = entry.value.Get...();
+        }
+        
+        return dictionary;
+    }
+}
+
+precedence DictionaryExpression = ParenExpression;

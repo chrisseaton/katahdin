@@ -1,0 +1,68 @@
+/*
+    Factorial is normally implemented as a function.
+*/
+
+function factorial(n)
+{
+    if (n == 0)
+        return 1;
+    else
+        return n * factorial(n - 1);
+}
+
+print "Using the function:";
+print "    2! = ", factorial(2);
+print "    5! = ", factorial(5);
+print "    14! = ", factorial(14);
+
+/*
+    In Katahdin we can implement it as an operator, even though there is no
+    existing operator to overload, and the name is already in use for
+    the not operator.
+    
+    Inheriting from UnaryExpression means that we have the same precedence
+    as other unary operators. We could also inherit from Expression and set
+    the precedence ourselves.
+    
+    We inherit from Expression or one of its subclasses so that our new syntax
+    can fit in anywhere an Expression is expected.
+*/
+
+class FactorialExpression : UnaryExpression
+{
+    pattern
+    {
+        option leftRecursive;
+        
+        a:Expression "!"
+    }
+    
+    method Get()
+    {
+        /*
+            The operator is implemented in terms of the existing syntax.
+        */
+        
+        return factorial(this.a.Get...());
+    }
+}
+
+/*
+    Immediately after defining the new syntax, we can use it, even within the
+    same file.
+*/
+
+print "Using the syntax:";
+print "    2! = ", 2!;
+print "    5! = ", 5!;
+print "    14! = ", 14!;
+
+/*
+    The syntax is on the same level as any built in syntax and can be used
+    anywhere any other operator can.
+*/
+
+print "    (4! / 2)! = ", (4! / 2)!;
+
+a = [3, 2, 3, 4, 7, 2, 8, 7, 3];
+print "    a[3!]! = ", a[3!]!;

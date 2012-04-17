@@ -1,0 +1,81 @@
+module Indentation
+{
+    function Reset()
+    {
+        globals.currentIndentation = -1;
+        globals.indentationStack = [];
+    }
+    
+    class Whitespace
+    {
+        pattern
+        {
+            " "*
+        }
+    }
+    
+    class EndOfLine
+    {
+        pattern
+        {
+            ("\r" "\n"? | "\n")+ | !.
+        }
+    }
+    
+    class Indentation
+    {
+        method Parse(lexer)
+        {
+            text = lexer.Text;
+            n = lexer.Position;
+            
+            // Move back to the start of the line
+            
+            if (lexer.Finished)
+                return false;
+            
+            while ((n > 0) & (text[n] != "\r") & (text[n] != "\n"))
+                n--;
+            
+            if (n > 0)
+                n++;
+            
+            // Get the current indentation
+            
+            indentation = 0;
+            
+            while ((n + indentation < text.Length)
+                & (text[n + indentation] == " "))
+                    indentation++;
+            
+            // Must be the same as the current
+            
+            //print "current = " + currentIndentation + " this = " + indentation;
+            
+            if (currentIndentation == -1)
+                globals.currentIndentation = indentation;
+            else
+                return indentation == currentIndentation;
+        }
+    }
+
+    class Indent
+    {
+        method Parse(lexer)
+        {
+            indentationStack.Add(currentIndentation);
+            globals.currentIndentation = -1;
+        }
+    }
+
+    class Dedent
+    {
+        method Parse(lexer)
+        {
+            globals.currentIndentation = indentationStack[indentationStack.Count - 1];
+            indentationStack.Remove(indentationStack.Count - 1);
+        }
+    }
+}
+
+Indentation.Reset();

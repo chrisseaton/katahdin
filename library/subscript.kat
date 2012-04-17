@@ -1,0 +1,62 @@
+class SubscriptExpression : Expression
+{
+    pattern
+    {
+        option leftRecursive;
+        
+        subscripted:Expression
+        
+        "["
+        {
+            option dropPrecedence = true;
+            n:Expression
+        }
+        "]"
+    }
+    
+    method Get()
+    {
+        subscripted = this.subscripted.Get...();
+        n = this.n.Get...();
+        
+        if (subscripted is System.String)
+            return subscripted.get_Chars(n);
+        else if (subscripted is System.Array)
+            return subscripted.GetValue(n);
+        else if (subscripted is System.Collections.IList)
+            return subscripted.get_Item(n);
+        else if (subscripted is System.Collections.IDictionary)
+        {
+            /*
+                TODO: looks up twice - switch to generic dictionary which
+                throws when a key not found?
+            */
+            
+            if (!subscripted.ContainsKey(n))
+                throw new System.Collections.Generic.KeyNotFoundException(n as System.String);
+            
+            return subscripted.get_Item(n);
+        }
+        else
+            return subscripted.GetSubscript(n);
+    }
+    
+    method Set(value)
+    {
+        subscripted = this.subscripted.Get...();
+        n = this.n.Get...();
+        
+        if (subscripted is System.String)
+            throw "strings are immutable";
+        else if (subscripted is System.Array)
+            subscripted.SetValue(value, n);
+        else if (subscripted is System.Collections.IList)
+            subscripted.set_Item(n, value);
+        else if (subscripted is System.Collections.IDictionary)
+            subscripted.set_Item(n, value);
+        else
+            subscripted.SetSubscript(n, value);
+    }
+}
+
+precedence SubscriptExpression = CallExpression;

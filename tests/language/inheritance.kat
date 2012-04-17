@@ -1,0 +1,29 @@
+import "test.kat";
+
+class Super
+{
+    method A()
+    {
+    }
+}
+
+class Sub : Super
+{
+}
+
+test
+{
+    super = new Super();
+    sub = new Sub();
+    
+    assert super is Super;
+    assert !(super is Sub);
+    assert sub is Super;
+    assert sub is Sub;
+}
+
+test
+{
+    assert super.A is Katahdin.ObjectMethodBinding;
+    assert sub.A is Katahdin.ObjectMethodBinding;
+}

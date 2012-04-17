@@ -1,0 +1,14 @@
+function GetFortran()
+{
+    import "fortran.kat";
+    return Fortran.Program;
+}
+
+function GetPython()
+{
+    import "python.kat";
+    return Python.Program;
+}
+
+languages = {".f": GetFortran,
+             ".py": GetPython};

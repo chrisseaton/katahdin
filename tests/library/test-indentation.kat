@@ -1,0 +1,109 @@
+import "test.kat";
+
+import "indentation.kat";
+
+class X;
+
+class A : X
+{
+    pattern
+    {
+        Indentation.Indentation "a" Indentation.EndOfLine
+    }
+    
+    method ToString()
+    {
+        return "a";
+    }
+}
+
+class B : X
+{
+    pattern
+    {
+        Indentation.Indentation "b" ":" Indentation.EndOfLine
+        Indentation.Indent
+            x:X+
+        Indentation.Dedent
+    }
+    
+    method ToString()
+    {
+        string = "(";
+        
+        for (x in this.x)
+            string = string + x.ToString();
+        
+        return string + ")";
+    }
+}
+
+class StateExpression : Expression
+{
+    pattern
+    {
+        "__STATE__" "{"
+        {
+            option whitespace = Indentation.Whitespace;
+            
+            Indentation.EndOfLine?
+            x:X+
+        }
+        "}"
+    }
+    
+    method Parsed()
+    {
+        Indentation.Reset();
+    }
+    
+    method Get()
+    {
+        string = "";
+        
+        for (x in this.x)
+            string = string + x.ToString();
+        
+        return string;
+    }
+}
+
+precedence StateExpression = CallExpression;
+
+assert __STATE__ {
+a
+} == "a";
+
+assert __STATE__ {
+    a
+} == "a";
+
+assert __STATE__ {
+    a
+    a
+} == "aa";
+
+assert __STATE__ {
+    b:
+        a
+} == "(a)";
+
+assert __STATE__ {
+    b:
+        a
+        a
+} == "(aa)";
+
+assert __STATE__ {
+    b:
+        a
+    a
+} == "(a)a";
+
+assert __STATE__ {
+    b:
+
+        a
+
+    a
+} == "(a)a";

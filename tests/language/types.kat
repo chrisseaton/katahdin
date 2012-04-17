@@ -1,0 +1,15 @@
+import "test.kat";
+
+test
+{
+    assert 0 is System.Int32;
+    assert true is System.Boolean;
+    assert "abc" is System.String;
+}
+
+test
+{
+    list = new System.Collections.ArrayList();
+    assert list is System.Collections.ArrayList;
+    assert list is System.Collections.IList;
+}

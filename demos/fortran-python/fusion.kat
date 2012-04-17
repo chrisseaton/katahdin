@@ -1,0 +1,27 @@
+import "fortran.kat";
+import "python.kat";
+
+fortran
+{
+      SUBROUTINE RANDOM(SEED, RANDX)
+
+      INTEGER SEED
+      REAL RANDX
+
+      SEED = 2045*SEED + 1
+      SEED = SEED - (SEED/1048576)*1048576
+      RANDX = REAL(SEED + 1)/1048577.0
+      RETURN
+
+      END
+}
+
+python
+{
+    seed = 128
+    randx = 0
+
+    for n in range(5):
+        RANDOM(seed, randx)
+        print randx
+}

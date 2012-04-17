@@ -1,0 +1,6 @@
+test
+{
+    assert "\"ab"[0] == "\"";
+    assert "a\"b"[1] == "\"";
+    assert "ab\""[2] == "\"";
+}

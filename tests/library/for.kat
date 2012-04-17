@@ -1,0 +1,88 @@
+import "test.kat";
+
+// Standard for loop
+
+test
+{
+    x = 1;
+
+    for (n = 0; n < 10; n++)
+        x = x * 2;
+
+    assert n == 10;
+    assert x == 1024;
+}
+
+// For-in over a string
+
+test
+{
+    x = 0;
+
+    for (n in "abc")
+    {
+        if (x == 0)
+            assert n == "a";
+        else if (x == 1)
+            assert n == "b";
+        else if (x == 2)
+            assert n == "c";
+        
+        x = x + 1;
+    }
+    
+    assert x == 3;
+}
+
+// For-in over a list
+
+test
+{
+    x = 0;
+    
+    for (n in [0, 1, 2])
+    {
+        assert n == x;
+        x = x + 1;
+    }
+    
+    assert x == 3;
+}
+
+// For-in over a dictionary
+
+test
+{
+    x = 0;
+
+    for ([key, value] in {"zero":"a", "one":"b", "two":"c"})
+    {
+        if (x == 0)
+        {
+            assert key == "zero";
+            assert value == "a";
+        }
+        else if (x == 1)
+        {
+            assert key == "one";
+            assert value == "b";
+        }
+        else if (x == 2)
+        {
+            assert key == "two";
+            assert value == "c";
+        }
+        
+        x = x + 1;
+    }
+    
+    assert x == 3;
+}
+
+// For-in over other stuff
+
+test throws System.Exception
+{
+    for (n in true)
+        assert n;
+}

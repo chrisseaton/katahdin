@@ -1,0 +1,34 @@
+import "test.kat";
+
+test
+{
+    assert [] is List;
+    assert [0, 1, 2] is List;
+}
+
+test
+{
+    a = [0, 1, 2];
+    assert a.Count == 3;
+    assert a[0] == 0;
+    assert a[1] == 1;
+    assert a[2] == 2;
+    
+    test throws System.ArgumentOutOfRangeException
+    {
+        x = a[-1];
+    }
+    
+    test throws System.ArgumentOutOfRangeException
+    {
+        x = a[3];
+    }
+}
+
+test
+{
+    [a, b, c] = [0, 1, 2];
+    assert a == 0;
+    assert b == 1;
+    assert c == 2;
+}

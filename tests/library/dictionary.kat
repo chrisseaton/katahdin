@@ -1,0 +1,21 @@
+import "test.kat";
+
+test
+{
+    assert {} is Dictionary;
+    assert {"zero": "a", "one": "b", "two":"c"} is Dictionary;
+}
+
+test
+{
+    a = {"zero": "a", "one": "b", "two":"c"};
+    assert a.Count == 3;
+    assert a["zero"] == "a";
+    assert a["one"] == "b";
+    assert a["two"] == "c";
+    
+    test throws System.Collections.Generic.KeyNotFoundException
+    {
+        x = a["three"];
+    }
+}

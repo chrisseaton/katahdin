@@ -1,0 +1,15 @@
+import "test.kat";
+
+class Test
+{
+    method testThis(expectThis)
+    {
+        assert this == expectThis;
+    }
+}
+
+test
+{
+    a = new Test();
+    a.testThis(a);
+}

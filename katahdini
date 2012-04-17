@@ -1,0 +1,4 @@
+#!/bin/sh
+
+PATH=$PATH:$KATAHDIN
+mono --debug `which Katahdin.Interpreter.exe` "$@"
